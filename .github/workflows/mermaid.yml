@@ -1,0 +1,15 @@
+name: Generate Mermaid Diagrams
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  hello-world:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Say hello
+        run: echo "Hello from GitHub Actions!"
