@@ -11,39 +11,98 @@ const renderer = new THREE.WebGLRenderer({antialias: true})
 renderer.setSize(window.innerWidth, window.innerHeight)
 document.body.appendChild(renderer.domElement) // Ajoute le canvas HTML à la page
 
-// === 2. ÉCLAIRAGE ===
-// Lumière ambiante : éclaire tous les objets de manière égale (évite le noir complet à l'ombre)
+// Éclairage
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.6)
 scene.add(ambientLight)
 
-// Lumière directionnelle : simule le soleil avec des ombres
 const sunLight = new THREE.DirectionalLight(0xffffff, 0.8)
-sunLight.position.set(10, 20, 10) // Positionne le soleil en haut à droite
+sunLight.position.set(10, 20, 10) 
 scene.add(sunLight)
 
-// === 3. CRÉATION DU BLOC MINECRAFT ===
-// Géométrie : Définit la forme du bloc (1x1x1 unité)
+// Un petit sol temporaire pour avoir des repères visuels
+const grid = new THREE.GridHelper(50, 50, 0x00ff00, 0xffffff)
+grid.position.y = 0
+scene.add(grid)
+
 const geometry = new THREE.BoxGeometry(1, 1, 1)
-
-// Matériau : Définit l'aspect visuel et la réactivité à la lumière
 const material = new THREE.MeshLambertMaterial({color: 0x557a2b})
-
-// Le Mesh combine la forme (geometry) et l'apparence (material)
 const cube = new THREE.Mesh(geometry, material)
-scene.add(cube) // Ajoute le cube à notre monde
+cube.position.set(0, 0.5, -5) // Placé un peu plus loin devant nous
+scene.add(cube)
 
-// Positionne la caméra légèrement en arrière et en haut pour voir le cube
-camera.position.set(0, 2, 5)
-camera.lookAt(0, 0, 0) // La caméra pointe vers le centre du monde
+// === 2. CONTROLE DE LA SOURIS ===
+const controls = new THREE.PointerLockControls(camera, document.body)
+const instructions = document.getElementById('instructions')
+
+// Clic sur l'écran -> Verrouille la souris et démarre le jeu
+instructions.addEventListener('click', () => { controls.lock() })
+
+// Masque ou affiche l'overlay selon l'état du Pointer lock
+controls.addEventListener('lock', () => {
+    instructions.style.display = 'none';
+})
+
+controls.addEventListener('unlock', () => {
+    instructions.style.display = 'flex'
+})
+
+// Position initiale de la caméra 
+camera.position.set(0, 1.6, 0)
+
+// === 3. GESTION DES TOUCHES DU CLAVIER ===
+const moveState = {
+    forward: false,
+    backward: false,
+    left: false,
+    right: false
+}
+
+// Détection de la pression d'une touche
+document.addEventListener('keydown', (event) => {
+    switch (event.code) {
+        case 'KeyW': moveState.forward = true; break
+        case 'KeyZ': moveState.forward = true; break
+        case 'KeyS': moveState.backward = true; break
+        case 'KeyA': moveState.left = true; break
+        case 'KeyQ': moveState.left = true; break
+        case 'KeyD': moveState.right = true; break
+    }
+})
+
+// Détection du relâchement d'une touche
+document.addEventListener('keyup', (event) => {
+    switch (event.code) {
+        case 'KeyW': moveState.forward = false; break
+        case 'KeyZ': moveState.forward = false; break
+        case 'KeyS': moveState.backward = false; break
+        case 'KeyA': moveState.left = false; break
+        case 'KeyQ': moveState.left = false; break
+        case 'KeyD': moveState.right = false; break
+    }
+})
 
 // === 4. BOUCLE DE RENDU (ANIMATION) ===
+const clock = new THREE.Clock() // Sert à calculer le delta time
+const speed = 10 // Vitesse de déplacement du joueur
+
 function animate() {
     // Demande au navigateur de rappeler cette fonction à chaque rafraîchissement d'écran (~60 fps)
     requestAnimationFrame(animate)
 
-    // Petite animation : fait tourner le cube sur lui-même
-    cube.rotation.x += 0.01
-    cube.rotation.y += 0.01
+    // delta = temps écoulé en secondes depuis la dernière image
+    // Cela garantit que la vitesse est constante quel que soit le taux de rafraîchissement
+    const delta = clock.getDelta()
+
+    // Ne déplace le joueur que si la souris est vérrouillée dans le jeu
+    if (controls.isLocked) {
+        // Déplacement avant/arrière
+        if (moveState.forward) controls.moveForward(speed * delta)
+        if (moveState.backward) controls.moveForward(-speed * delta)
+
+        // Déplacement latéral
+        if (moveState.right) controls.moveRight(speed * delta)
+        if (moveState.left) controls.moveRight(-speed * delta)
+    }
 
     // Rendu final de la scène vue par la caméra
     renderer.render(scene, camera)
