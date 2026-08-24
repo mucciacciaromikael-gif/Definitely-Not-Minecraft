@@ -46,6 +46,9 @@ controls.addEventListener('unlock', () => {
     instructions.style.display = 'flex'
 })
 
+const playerHeight = 1.6 // Taille des yeux du joueur en mètres
+camera.position.set(0, playerHeight, 0)
+
 // Position initiale de la caméra 
 camera.position.set(0, 1.6, 0)
 
@@ -57,6 +60,12 @@ const moveState = {
     right: false
 }
 
+// Variables de physique du saut
+let velocityY = 0 // Vitesse verticale actuelle
+const gravity = -30 // Force de la gravité (négative)
+const jumpStrength = 10 // Force de la poussée lors du saut
+let canJump = false // Vrai uniquement si le joueur touche le sol
+
 // Détection de la pression d'une touche
 document.addEventListener('keydown', (event) => {
     switch (event.code) {
@@ -66,6 +75,12 @@ document.addEventListener('keydown', (event) => {
         case 'KeyA': moveState.left = true; break
         case 'KeyQ': moveState.left = true; break
         case 'KeyD': moveState.right = true; break
+
+        // Gestion du saut
+        case 'Space': if (canJump) {
+            velocityY = jumpStrength // Impulsion vers le haut
+            canJump = false // Empêche le saut infini dans l'Éclairage
+        } break
     }
 })
 
@@ -98,10 +113,22 @@ function animate() {
         // Déplacement avant/arrière
         if (moveState.forward) controls.moveForward(speed * delta)
         if (moveState.backward) controls.moveForward(-speed * delta)
-
         // Déplacement latéral
         if (moveState.right) controls.moveRight(speed * delta)
         if (moveState.left) controls.moveRight(-speed * delta)
+
+        // Application de la gravité
+        velocityY += gravity * delta // La gravité réduit la vitesse verticale au fil du temps
+
+        // Applique le déplacement vertical à la caméra
+        camera.position.y += velocityY * delta
+
+        // Collision basique avec le sol
+        if (camera.position.y <= playerHeight) {
+            velocityY = 0 // Arrête la chute
+            camera.position.y = playerHeight // Replace le joueur exactement au sol
+            canJump = true // Réautorise le saut
+        }
     }
 
     // Rendu final de la scène vue par la caméra
